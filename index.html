@@ -1,150 +1,95 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Interactive Red Rose</title>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at center, #330000, #000);
-      overflow: hidden;
+<script>
+  const rose = document.getElementById('roseModel');
+  const fallbackImage = document.getElementById('fallbackImage');
+  const messageEl = document.getElementById('message');
+
+  /* ===== 🎵 MUSIC ===== */
+  const music = document.getElementById('bgMusic');
+  const musicBtn = document.getElementById('musicBtn');
+  let isPlaying = false;
+  let musicStarted = false;
+
+  function toggleMusic() {
+    if (!isPlaying) {
+      music.play();
+      musicBtn.textContent = '⏸️';
+    } else {
+      music.pause();
+      musicBtn.textContent = '🎵';
+    }
+    isPlaying = !isPlaying;
+  }
+
+  musicBtn.addEventListener('click', toggleMusic);
+
+  /* ===== 💬 MESSAGES ===== */
+  const messages = [
+    "...",
+    "just like the rose every side of u feels special",
+    "I love with everything I have sweetheart",
+    "ur forever my beloved",
+    "So I made this rose for u"
+  ];
+
+  let lastIndex = -1;
+  const DEAD_ZONE = 5;
+
+  function radToDeg(rad) {
+    return rad * (180 / Math.PI);
+  }
+
+  /* ===== 🌹 ROTATION + MUSIC START ===== */
+  rose.addEventListener('camera-change', () => {
+    const orbit = rose.getCameraOrbit();
+    if (!orbit) return;
+
+    // 🎵 Start music on FIRST rotation only
+    if (!musicStarted) {
+      music.play();
+      musicBtn.textContent = '⏸️';
+      isPlaying = true;
+      musicStarted = true;
     }
 
-    model-viewer,
-    #fallbackImage {
-      width: 90vw;
-      max-width: 400px;
-      height: 80vh;
-    }
+    let angle = radToDeg(orbit.theta);
+    angle = (angle + 360) % 360;
 
-    .instructions {
-      position: fixed;
-      bottom: 20px;
-      color: #ff4d4d;
-      font-size: 1.2rem;
-      text-align: center;
-      width: 100%;
-    }
-
-    .message {
-      position: fixed;
-      top: 8%;
-      width: 100%;
-      text-align: center;
-      font-size: 1.4rem;
-      color: #ff7aa2;
-      opacity: 0;
-      transform: translateY(10px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-      pointer-events: none;
-    }
-
-    .message.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  </style>
-</head>
-<body>
-
-  <!-- 3D Rose -->
-  <model-viewer id="roseModel"
-                src="rose.glb"
-                alt="Interactive Red Rose"
-                camera-controls
-                auto-rotate
-                touch-action="pan-y"
-                style="--poster-color: #000"
-                shadow-intensity="1">
-  </model-viewer>
-
-  <!-- Fallback Image (only if GLB fails twice) -->
-  <img id="fallbackImage"
-       src="fallback.jpg"
-       alt="Rose"
-       style="display:none;" />
-
-  <div id="message" class="message"></div>
-  <div class="instructions">Touch and drag to rotate the rose 🌹</div>
-
-  <script>
-    const rose = document.getElementById('roseModel');
-    const fallbackImage = document.getElementById('fallbackImage');
-    const messageEl = document.getElementById('message');
-
-    const messages = [
-      "...",
-      "just like the rose every side of u feels special ",
-      "I love with everything I have sweetheart",
-      "ur forever my beloved",
-      "So I made this rose for u"
-    ];
-
-    let lastIndex = -1;
-    const DEAD_ZONE = 5;
-
-    function radToDeg(rad) {
-      return rad * (180 / Math.PI);
-    }
-
-    rose.addEventListener('camera-change', () => {
-      const orbit = rose.getCameraOrbit();
-      if (!orbit) return;
-
-      let angle = radToDeg(orbit.theta);
-      angle = (angle + 360) % 360;
-
-      if (angle < DEAD_ZONE) {
-        messageEl.classList.remove('show');
-        lastIndex = -1;
-        return;
-      }
-
-      const section = Math.floor((angle - DEAD_ZONE) / 90);
-      const index = ((section % messages.length) + messages.length) % messages.length;
-
-      if (index !== lastIndex) {
-        lastIndex = index;
-        messageEl.textContent = messages[index];
-        messageEl.classList.remove('show');
-        requestAnimationFrame(() => messageEl.classList.add('show'));
-      }
-    });
-
-    // ===== GLB retry + fallback logic =====
-    let hasRetried = false;
-    const originalSrc = rose.getAttribute('src');
-
-    rose.addEventListener('error', (event) => {
-      if (!hasRetried) {
-        hasRetried = true;
-
-        rose.setAttribute('src', '');
-        setTimeout(() => {
-          rose.setAttribute('src', originalSrc);
-        }, 100);
-
-        console.warn('Retrying 3D model load once...');
-        return;
-      }
-
-      // Second failure → fallback image + special message
-      rose.style.display = 'none';
-      fallbackImage.style.display = 'block';
-
+    if (angle < DEAD_ZONE) {
+      messageEl.classList.remove('show');
       lastIndex = -1;
-      messageEl.textContent = messages[0];
-      messageEl.classList.add('show');
+      return;
+    }
 
-      console.error('3D model failed to load after retry:', event);
-    });
-  </script>
+    const section = Math.floor((angle - DEAD_ZONE) / 90);
+    const index = ((section % messages.length) + messages.length) % messages.length;
 
-</body>
-</html>
+    if (index !== lastIndex) {
+      lastIndex = index;
+      messageEl.textContent = messages[index];
+      messageEl.classList.remove('show');
+      requestAnimationFrame(() => messageEl.classList.add('show'));
+    }
+  });
+
+  /* ===== ❌ GLB RETRY + FALLBACK ===== */
+  let hasRetried = false;
+  const originalSrc = rose.getAttribute('src');
+
+  rose.addEventListener('error', () => {
+    if (!hasRetried) {
+      hasRetried = true;
+      rose.setAttribute('src', '');
+      setTimeout(() => {
+        rose.setAttribute('src', originalSrc);
+      }, 100);
+      return;
+    }
+
+    // Final fallback
+    rose.style.display = 'none';
+    fallbackImage.style.display = 'block';
+
+    messageEl.textContent = messages[0];
+    messageEl.classList.add('show');
+  });
+</script>
