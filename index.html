@@ -1,127 +1,65 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Interactive Red Rose</title>
+<script>
+  const rose = document.getElementById('roseModel');
+  const fallbackImage = document.getElementById('fallbackImage');
+  const messageEl = document.getElementById('message');
 
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+  /* ===== 🎵 MUSIC ===== */
+  const music = document.getElementById('bgMusic');
+  const musicBtn = document.getElementById('musicBtn');
 
-  <style>
-    body {
-      margin: 0;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: radial-gradient(circle at center, #330000, #000);
-      overflow: hidden;
+  let isPlaying = false;
+  let musicStarted = false;
+
+  function playMusic() {
+    if (!music) return;
+    music.play();
+    isPlaying = true;
+    if (musicBtn) musicBtn.textContent = '⏸️';
+  }
+
+  function toggleMusic() {
+    if (!music) return;
+
+    if (!isPlaying) {
+      playMusic();
+    } else {
+      music.pause();
+      isPlaying = false;
+      if (musicBtn) musicBtn.textContent = '🎵';
     }
+  }
 
-    model-viewer,
-    #fallbackImage {
-      width: 90vw;
-      max-width: 400px;
-      height: 80vh;
-    }
+  if (musicBtn) {
+    musicBtn.addEventListener('click', toggleMusic);
+  }
 
-    .instructions {
-      position: fixed;
-      bottom: 20px;
-      color: #ff4d4d;
-      font-size: 1.2rem;
-      text-align: center;
-      width: 100%;
-    }
+  /* ===== 💬 MESSAGES ===== */
+  const messages = [
+    "...",
+    "just like the rose every side of u feels special",
+    "I love with everything I have sweetheart",
+    "ur forever my beloved",
+    "So I made this rose for u"
+  ];
 
-    .message {
-      position: fixed;
-      top: 8%;
-      width: 100%;
-      text-align: center;
-      font-size: 1.4rem;
-      color: #ff7aa2;
-      opacity: 0;
-      transform: translateY(10px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-      pointer-events: none;
-    }
+  let lastIndex = -1;
+  const DEAD_ZONE = 5;
 
-    .message.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  function radToDeg(rad) {
+    return rad * (180 / Math.PI);
+  }
 
-    /* 🔥 MUSIC BUTTON */
-    .music-btn {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      font-size: 1.6rem;
-      background: rgba(255, 77, 77, 0.15);
-      border: 1px solid #ff4d4d;
-      color: #ff7aa2;
-      padding: 10px 14px;
-      border-radius: 50%;
-      cursor: pointer;
-      backdrop-filter: blur(6px);
-    }
-  </style>
-</head>
-<body>
-
-  <!-- 🎵 Background Music -->
-  <audio id="bgMusic" loop>
-    <source src="music.mp3" type="audio/mpeg">
-  </audio>
-
-  <!-- 🎵 Toggle Button -->
-  <button id="musicBtn" class="music-btn">🎵</button>
-
-  <!-- 3D Rose -->
-  <model-viewer id="roseModel"
-                src="rose.glb"
-                alt="Interactive Red Rose"
-                camera-controls
-                auto-rotate
-                touch-action="pan-y"
-                style="--poster-color: #000"
-                shadow-intensity="1">
-  </model-viewer>
-
-  <!-- Fallback Image -->
-  <img id="fallbackImage"
-       src="fallback.jpg"
-       alt="Rose"
-       style="display:none;" />
-
-  <div id="message" class="message"></div>
-  <div class="instructions">Touch and drag to rotate the rose 🌹</div>
-
-  <script>
-    const rose = document.getElementById('roseModel');
-    const fallbackImage = document.getElementById('fallbackImage');
-    const messageEl = document.getElementById('message');
-
-    /* ===== MESSAGES ===== */
-    const messages = [
-      "...",
-      "just like the rose every side of u feels special",
-      "I love with everything I have sweetheart",
-      "ur forever my beloved",
-      "So I made this rose for u"
-    ];
-
-    let lastIndex = -1;
-    const DEAD_ZONE = 5;
-
-    function radToDeg(rad) {
-      return rad * (180 / Math.PI);
-    }
-
+  /* ===== 🌹 ROTATION + MUSIC START ===== */
+  if (rose) {
     rose.addEventListener('camera-change', () => {
       const orbit = rose.getCameraOrbit();
       if (!orbit) return;
+
+      // 🎵 start music on first rotation
+      if (!musicStarted) {
+        playMusic();
+        musicStarted = true;
+      }
 
       let angle = radToDeg(orbit.theta);
       angle = (angle + 360) % 360;
@@ -142,11 +80,13 @@
         requestAnimationFrame(() => messageEl.classList.add('show'));
       }
     });
+  }
 
-    /* ===== GLB retry + fallback ===== */
-    let hasRetried = false;
-    const originalSrc = rose.getAttribute('src');
+  /* ===== ❌ GLB RETRY + FALLBACK ===== */
+  let hasRetried = false;
+  const originalSrc = rose ? rose.getAttribute('src') : null;
 
+  if (rose) {
     rose.addEventListener('error', () => {
       if (!hasRetried) {
         hasRetried = true;
@@ -156,34 +96,10 @@
       }
 
       rose.style.display = 'none';
-      fallbackImage.style.display = 'block';
+      if (fallbackImage) fallbackImage.style.display = 'block';
+
       messageEl.textContent = messages[0];
       messageEl.classList.add('show');
     });
-
-    /* ===== 🎵 MUSIC LOGIC ===== */
-    const music = document.getElementById('bgMusic');
-    const musicBtn = document.getElementById('musicBtn');
-    let isPlaying = false;
-
-    function toggleMusic() {
-      if (!isPlaying) {
-        music.play();
-        musicBtn.textContent = '⏸️';
-      } else {
-        music.pause();
-        musicBtn.textContent = '🎵';
-      }
-      isPlaying = !isPlaying;
-    }
-
-    musicBtn.addEventListener('click', toggleMusic);
-
-    // Mobile: first interaction starts music
-    document.body.addEventListener('click', () => {
-      if (!isPlaying) toggleMusic();
-    }, { once: true });
-  </script>
-
-</body>
-</html>
+  }
+</script>
